@@ -31,12 +31,17 @@
                     <div style="float: left; margin-bottom: 4px">
                       <v-progress-circular :rotate="-90" :size="100" :width="15" :value="qr.soc_bms || qr.soc_display || 0"
                         color="#fc9928">
-                        {{ qr.soc_bms || qr.soc_display || 0 }} %
+                        {{ qr.soc_display || qr.soc_bms || 0 }} %
                       </v-progress-circular>
                     </div>
                     <div style="margin-left: 4px;float: right;text-align: left;">
-                      <div>
-                        <h4>Estimated time left (full charge): </h4> {{ qr.estimated_time || '00:00' }}h
+                      <div v-if="qr.estimatedTime">
+                        <h4>Estimated time left (full charge): </h4>
+                        {{
+                        qr.slow_charge_port ? convertDecimalTime(qr.estimatedTime.estimatedSlowTime) :
+                        qr.normal_charge_port ? convertDecimalTime(qr.estimatedTime.estimatedNormalTime) :
+                        qr.rapid_charge_port ? convertDecimalTime(qr.estimatedTime.estimatedFastTime) : '00:00'
+                        }}h
                       </div>
                       <!-- TODO: Not available yet -->
                       <div v-if="false">
@@ -59,7 +64,8 @@
               <v-dialog v-model="dialog" persistent max-width="290">
                 <v-card>
                   <v-card-title class="headline">Unavailable</v-card-title>
-                  <v-card-text>This feature is currently under development and will be activated as soon as possible. Please be patient.</v-card-text>
+                  <v-card-text>This feature is currently under development and will be activated as soon as possible.
+                    Please be patient.</v-card-text>
                   <v-card-actions>
                     <v-spacer></v-spacer>
                     <v-btn color="green darken-1" flat @click="dialog = false">Ok, cool</v-btn>
@@ -121,6 +127,22 @@
         this.notFound = err.status === 404;
         this.denied = err.status === 401;
       });
+    },
+    methods: {
+      /**
+       * Converts the decimal time into hh:mm format (e.g.: 0.5h will be converted to 00:30h)
+       * @param {Number} time the time to convert
+       * @returns {String} the formatted time string
+       */
+      convertDecimalTime: function (time) {
+        if (isNaN(parseInt(time))) return '00:00';
+
+        var sign = ((time < 0) ? '-' : ''),
+          min = Math.floor(Math.abs(time)),
+          sec = Math.floor((Math.abs(time) * 60) % 60);
+
+        return sign + (((min < 10) ? '0' : '')) + min + ':' + (((sec < 10) ? '0' : '')) + sec;
+      }
     }
   }
 </script>
