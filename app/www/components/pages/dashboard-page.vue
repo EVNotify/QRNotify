@@ -56,7 +56,7 @@
                 <v-btn flat color="orange" @click="dialog = true">Notify me on charge finished</v-btn>
               </v-card-actions>
               <v-card-actions>
-                <v-btn flat color="orange" @click="dialog = true">Notify driver that you need to charge</v-btn>
+                <v-btn flat color="orange" @click="notifyDriver()">Notify driver that you need to charge</v-btn>
               </v-card-actions>
             </v-card>
 
@@ -69,6 +69,45 @@
                   <v-card-actions>
                     <v-spacer></v-spacer>
                     <v-btn color="green darken-1" flat @click="dialog = false">Ok, cool</v-btn>
+                  </v-card-actions>
+                </v-card>
+              </v-dialog>
+            </v-layout>
+
+            <v-layout row justify-center>
+              <v-dialog v-model="errorDialog" persistent max-width="290">
+                <v-card>
+                  <v-card-title class="headline">Oops!</v-card-title>
+                  <v-card-text>There was an error. Please try again in a few minutes.</v-card-text>
+                  <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn color="red darken-1" flat @click="errorDialog = false">Ok</v-btn>
+                  </v-card-actions>
+                </v-card>
+              </v-dialog>
+            </v-layout>
+
+            <v-layout row justify-center>
+              <v-dialog v-model="alreadyNotifiedDialog" persistent max-width="290">
+                <v-card>
+                  <v-card-title class="headline">Already notified</v-card-title>
+                  <v-card-text>The driver was already notified. Please be patient. You can try to re-notify in a few minutes.</v-card-text>
+                  <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn color="green darken-1" flat @click="alreadyNotifiedDialog = false">Ok, cool</v-btn>
+                  </v-card-actions>
+                </v-card>
+              </v-dialog>
+            </v-layout>
+
+            <v-layout row justify-center>
+              <v-dialog v-model="driverDialog" persistent max-width="290">
+                <v-card>
+                  <v-card-title class="headline">Notified!</v-card-title>
+                  <v-card-text>You made it! The driver has been notified. If possible, the driver is on the way and will let you charge.</v-card-text>
+                  <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn color="green darken-1" flat @click="driverDialog = false">Ok, cool</v-btn>
                   </v-card-actions>
                 </v-card>
               </v-dialog>
@@ -106,6 +145,9 @@
       drawer: null,
       qr: false,
       dialog: false,
+      errorDialog: false,
+      alreadyNotifiedDialog: false,
+      driverDialog: false,
       loading: true,
       denied: false,
       aborted: false,
@@ -134,7 +176,7 @@
        * @param {Number} time the time to convert
        * @returns {String} the formatted time string
        */
-      convertDecimalTime: function (time) {
+      convertDecimalTime(time) {
         if (isNaN(parseInt(time))) return '00:00';
 
         var sign = ((time < 0) ? '-' : ''),
@@ -142,6 +184,19 @@
           sec = Math.floor((Math.abs(time) * 60) % 60);
 
         return sign + (((min < 10) ? '0' : '')) + min + ':' + (((sec < 10) ? '0' : '')) + sec;
+      },
+      /**
+       * Sends out notification request to inform driver about charging request
+       */
+      notifyDriver() {
+        this.$http.post(RESTURL + 'qrnotify', {
+          code: location.search.split('code=')[1]
+        }).then(response => {
+          this.driverDialog = true;
+        }, err => {
+          if (err.status === 429) this.alreadyNotifiedDialog = true;
+          else this.errorDialog = true;
+        });
       }
     }
   }
